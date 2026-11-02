@@ -1,73 +1,55 @@
-# Cloud Workload Forecasting Challenge
+# Cloud Workload Forecasting
 
-AI/ML take-home challenge built from the **Microsoft Azure Public Dataset V2** VM trace.
+A reproducible time-series forecasting pipeline for aggregate cloud workload demand, developed for the Atomity AI/ML Engineering take-home challenge using the Microsoft Azure Public Dataset V2.
 
-## Start here
+## Overview
 
-1. Read [`ASSIGNMENT.md`](ASSIGNMENT.md).
-2. Read [`DATASET.md`](DATASET.md).
-3. Download the **`data-v1` GitHub Release** dataset and extract it as `challenge_data/`.
-4. Read [`SUBMISSION.md`](SUBMISSION.md).
-5. Implement your analysis and forecasting pipeline.
+This project analyzes virtual machine CPU telemetry and forecasts two aggregate workload indicators over a 24-step horizon:
 
-The challenge dataset is distributed as a versioned GitHub Release rather than committed to the repository. The `data-v1` release contains the fixed curated dataset used for this assignment.
+- `active_vm_count`: number of distinct virtual machines with valid CPU observations at each timestamp.
+- `aggregate_cpu_utilization`: mean CPU utilization across the available VM observations at each timestamp.
 
-## Environment setup
+The dataset contains 10,000 virtual machines, 134 measurements per VM, and 1,340,000 CPU observations sampled at five-minute intervals.
 
-Python **3.11 or newer** is required.
+The final forecasting approach uses:
 
-Create a virtual environment:
+- A constant forecast for `active_vm_count`, based on its observed stability in the training period.
+- ARIMA(2,0,0) with a constant trend for `aggregate_cpu_utilization`.
 
-### Linux / macOS
+The implementation includes data validation, time-aware model evaluation, automated prediction generation, and tests.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
+## Repository structure
+
+```text
+.
+├── challenge_data/          # Local dataset (not committed)
+├── notebooks/
+│   ├── 01_eda.ipynb         # Exploratory analysis
+│   ├── 01_eda.py            # Reproducible analysis script
+│   └── figures/             # Generated EDA figures
+├── reports/                 # Evaluation results and experiment reports
+├── predictions.csv          # Final 24-step forecast
+├── src/cwfc/
+│   ├── data.py              # Data loading and validation
+│   ├── baselines.py         # Baseline forecasting methods
+│   ├── models.py            # Forecasting models
+│   ├── validation.py        # Time-series cross-validation
+│   ├── evaluate.py          # Model evaluation
+│   └── predict.py           # Final prediction pipeline
+├── tests/                   # Automated tests
+├── pyproject.toml
+└── README.md
 ```
 
-### Windows PowerShell
+## Dataset setup
 
-```powershell
-py -m venv .venv
-.venv\Scripts\Activate.ps1
-```
+The challenge dataset is distributed through the original repository's fixed `data-v1` GitHub Release.
 
-### Windows Command Prompt
+Download `data-v1.tar.gz` from:
 
-```cmd
-py -m venv .venv
-.venv\Scripts\activate.bat
-```
+[Azure Dataset v1 Release](https://github.com/atomityhq/forecasting-challenge/releases/tag/data-v1)
 
-Install the project and development dependencies:
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-```
-
-Verify the installation:
-
-```bash
-python -m pytest -q
-```
-
-The repository includes a small test suite covering the starter forecasting utilities. Run it before beginning the assignment.
-
-## Dataset download
-
-The hiring dataset is distributed as the fixed `data-v1` release of this repository.
-
-**Download:** [Azure Dataset v1 Release](https://github.com/atomityhq/forecasting-challenge/releases/tag/data-v1)
-
-Download `data-v1.tar.gz` from the release and extract it into the repository as `challenge_data/`:
-
-```bash
-mkdir -p challenge_data
-tar -xzf data-v1.tar.gz -C challenge_data
-```
-
-The resulting layout is:
+Extract the archive into the project root so that the following files are available:
 
 ```text
 challenge_data/
@@ -77,53 +59,181 @@ challenge_data/
 └── SHA256SUMS
 ```
 
-Verify the dataset before starting the assignment:
+On Linux or macOS:
 
 ```bash
+mkdir -p challenge_data
+tar -xzf data-v1.tar.gz -C challenge_data
 cd challenge_data
 sha256sum -c SHA256SUMS
+cd ..
 ```
 
-You should see:
+On Windows PowerShell, verify the downloaded files against the hashes listed in `challenge_data/SHA256SUMS` using `Get-FileHash`.
 
-```text
-vm_cpu_readings.csv.gz: OK
-vm_metadata.csv.gz: OK
-DATA_CARD.md: OK
+The dataset and archive are intentionally excluded from Git. The pipeline reads the dataset from the supplied `challenge_data` directory.
+
+## Environment setup
+
+Python 3.11 or newer is required.
+
+Create and activate a virtual environment.
+
+**Windows PowerShell**
+
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
 ```
 
-The release is a real, curated subset of the Microsoft Azure Public Dataset V2. It is not synthetic data.
-
-The dataset contains 10,000 VMs with 134 CPU measurements per VM at five-minute intervals, for a total of 1,340,000 CPU observations.
-
-Use the exact `data-v1` release provided for this assignment. Do not substitute another dataset or a different version of the Azure Public Dataset.
-
-## What you are solving
-
-The underlying data contains anonymized VM workload telemetry sampled every five minutes. Your job is to understand the workload and build a defensible forecasting pipeline for near-term aggregate demand.
-
-The challenge is intentionally open-ended. We evaluate reasoning, time-series methodology, leakage prevention, error analysis, reproducibility, and the quality of your operational conclusions—not just model complexity.
-
-## Expected environment
-
-Python 3.11+ is recommended.
+**Linux / macOS**
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e '.[dev]'
-pytest -q
 ```
 
-Model dependencies are intentionally not prescribed. Add only what you need and document them.
+Install the project and test dependencies:
 
-## Source
+```bash
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
+For exploratory analysis:
+
+```bash
+python -m pip install -e ".[analysis]"
+```
+
+For the optional HistGradientBoosting experiment:
+
+```bash
+python -m pip install -e ".[boosting]"
+```
+
+## Reproducing the final predictions
+
+From the repository root, run:
+
+```bash
+python -m cwfc.predict --data challenge_data --output predictions.csv
+```
+
+The command generates `predictions.csv` using the default final model, ARIMA(2,0,0).
+
+The output must contain exactly three columns:
+
+```text
+timestamp,active_vm_count,aggregate_cpu_utilization
+```
+
+It contains exactly 24 rows, corresponding to the final two-hour forecasting horizon. The pipeline validates the output schema, timestamp ordering, uniqueness, finite values, and target constraints before writing the file.
+
+To inspect the generated predictions:
+
+```bash
+python -c "import pandas as pd; d=pd.read_csv('predictions.csv'); print(d.to_string(index=False))"
+```
+
+## Methodology
+
+### Exploratory data analysis
+
+The exploratory analysis examines:
+
+- Dataset integrity, timestamp cadence, and VM coverage.
+- Aggregate CPU utilization distribution and variability.
+- Autocorrelation and short-term temporal behavior.
+- Differences in VM-level CPU characteristics.
+- Workload concentration across virtual machines.
+
+The analysis distinguishes full-release data quality checks from target-related analysis. Statistics that could influence model selection are restricted to the training period.
+
+Run the analysis script with:
+
+```bash
+python notebooks/01_eda.py
+```
+
+### Leakage prevention and validation
+
+The forecasting setup uses:
+
+- 110 observations for training.
+- 24 final observations reserved as the holdout.
+- A five-minute sampling interval.
+- A 24-step forecasting horizon.
+
+The final 24 target observations are excluded from model fitting, feature selection, hyperparameter tuning, and model selection.
+
+Model comparison uses expanding-window time-series cross-validation with:
+
+- Initial training window: 48 observations.
+- Forecasting horizon: 24 observations.
+- Step size: 1 observation.
+- Total: 39 folds.
+
+The folds overlap, so their prediction errors are not independent. The evaluation also covers a single aggregate time series; results should therefore not be interpreted as evidence of generalization to unrelated workloads or datasets.
+
+### Model selection
+
+Several forecasting approaches were compared, including statistical baselines, exponential smoothing, moving averages, temporal regression, ARIMA configurations, and an optional HistGradientBoosting model.
+
+The selected model was ARIMA(2,0,0) with a constant trend.
+
+Cross-validation results for aggregate CPU utilization:
+
+| Model                |    MAE |   RMSE | sMAPE (%) |
+| -------------------- | -----: | -----: | --------: |
+| ARIMA(2,0,0)         | 0.1926 | 0.2317 |    2.0343 |
+| Temporal regression  | 0.1961 | 0.2350 |    2.0716 |
+| Mean baseline        | 0.2050 | 0.2420 |    2.1656 |
+| HistGradientBoosting | 0.2244 | 0.2802 |    2.3592 |
+
+ARIMA(2,0,0) achieved the lowest MAE among the evaluated candidates. Its improvement over temporal regression was relatively small, so the results support a preference for the simpler selected statistical model within this validation setup rather than a broad claim of model superiority.
+
+The active VM count remained constant at 10,000 throughout the training observations. A constant forecast was therefore used for this target.
+
+Detailed results are available in the `reports/` directory, including fold-level metrics, horizon-level metrics, and the HistGradientBoosting experiment.
+
+## Evaluation
+
+Run the automated test suite:
+
+```bash
+python -m pytest -q
+```
+
+Run the optional candidate comparison:
+
+```bash
+python -m pip install -e ".[boosting]"
+python -m cwfc.evaluate --data challenge_data --candidates --detailed
+```
+
+The evaluation command compares the forecasting candidates using the time-aware validation procedure. The optional HistGradientBoosting model is experimental and is not used by the default final prediction pipeline.
+
+## Final submission artifact
+
+The final deliverable is `predictions.csv`.
+
+It contains 24 chronological predictions, with no missing values or duplicate timestamps, and satisfies the required target constraints:
+
+- `active_vm_count` is non-negative.
+- `aggregate_cpu_utilization` is between 0 and 100.
+- All predictions are finite numeric values.
+
+The dataset, final holdout targets, and local environment files are not included in the repository.
+
+## Data source
 
 Microsoft Azure Public Dataset V2:
+
 https://github.com/Azure/AzurePublicDataset
 
-The official V2 documentation describes a 30-day VM trace with five-minute CPU readings, VM metadata, and encrypted subscription/deployment/VM identifiers. The full upstream trace is much larger than this challenge release.
+The challenge uses the fixed curated `data-v1` release supplied by Atomity, rather than the full upstream trace.
 
-## Submission
+## Reproducibility
 
-Submit your work as a repository or archive according to [`SUBMISSION.md`](SUBMISSION.md).
+The project is designed to run from a clean checkout when the required dataset release is supplied. Dependencies are declared in `pyproject.toml`, and the prediction pipeline can be executed without manually editing generated files.

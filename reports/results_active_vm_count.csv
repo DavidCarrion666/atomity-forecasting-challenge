@@ -1,0 +1,9 @@
+rank,target,model,mae,rmse,smape,n_folds,nmae_vs_persistence
+1,active_vm_count,mean,0.0,0.0,0.0,39,
+2,active_vm_count,persistence,0.0,0.0,0.0,39,
+3,active_vm_count,drift,0.0,0.0,0.0,39,
+4,active_vm_count,moving_average_12,0.0,0.0,0.0,39,
+5,active_vm_count,moving_average_6,0.0,0.0,0.0,39,
+6,active_vm_count,exp_smoothing_03,0.0,0.0,0.0,39,
+7,active_vm_count,exp_smoothing_05,0.0,0.0,0.0,39,
+8,active_vm_count,seasonal_naive_24,0.0,0.0,0.0,39,

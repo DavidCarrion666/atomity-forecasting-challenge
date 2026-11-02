@@ -5,12 +5,24 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cloud-workload-forecasting"
 version = "1.0.0"
-description = "Candidate starter utilities for a cloud workload forecasting take-home"
+description = "Time-series forecasting pipeline for cloud workload demand"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26", "pandas>=2.0"]
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "statsmodels>=0.14"
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+    "pytest>=8.0"
+]
+boosting = [
+    "scikit-learn>=1.4"
+]
+analysis = [
+    "matplotlib>=3.8"
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

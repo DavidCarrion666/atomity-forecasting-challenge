@@ -1,4 +1,15 @@
+# Python
 *.egg-info/
-.venv/
-.pytest_cache/
 __pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+
+# Testing
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Challenge dataset (do not commit)
+challenge_data/
+data-v1.tar.gz
